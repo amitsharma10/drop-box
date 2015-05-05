@@ -1,11 +1,13 @@
 let net = require('net')
 let fs = require('fs')
+let mkdirp = require('mkdirp')
+let path = require('path')
 let argv = require('yargs')
     .default('dir', process.cwd())
     .argv
 
-let mkdirp = require('mkdirp')
-let path = require('path')
+const ROOT_DIR = path.resolve(argv.dir)
+
 
 var client = net.connect({port: 8001},
     function() { //'connect' listener
@@ -13,15 +15,18 @@ var client = net.connect({port: 8001},
 
     });
 client.on('data', function(data) {
-    let syncDir = '/Users/ashar61/work/dropboxSync'
     let dataJson =  JSON.parse(data)
+    console.log('Received'  +  dataJson.path)
     let action = dataJson.action
     let type = dataJson.type
-    if (action == 'create' || action == 'update') {
+    console.log(dataJson)
+    console.log(dataJson.contents)
+    if (action == 'create' || action == 'change') {
         if (type == 'file' ) {
-            fs.writeFileSync(path.join(syncDir, dataJson.path), dataJson.data)
+            console.log("I am here")
+            fs.writeFileSync(path.join(ROOT_DIR, dataJson.path), dataJson.contents)
         } else {
-            mkdirp(path.join(syncDir, dataJson.path))
+            mkdirp(path.join(ROOT_DIR, dataJson.path))
         }
     }
 });

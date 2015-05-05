@@ -94,7 +94,7 @@ function setFileMeta(req, res, next) {
 
 function sendHeaders(req, res, next) {
     nodeify(async ()=> {
-        if (req.stat.isDirectory()) {
+        if ( req.stat && req.stat.isDirectory()) {
             let files = await fs.promise.readdir(req.filePath)
             res.body = JSON.stringify(files)
             res.setHeader('Content-Length', res.body.length)
