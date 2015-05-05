@@ -29,6 +29,13 @@ Time spent: 12
 
 ### Walkthrough
 
+HTTP Walkthrough
+![GIF](HTTP.gif)
+
+
+TCP Client sync 
+![GIF](TCP.gif)
+
 
 
 
