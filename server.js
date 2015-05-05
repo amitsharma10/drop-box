@@ -6,6 +6,9 @@ let nodeify = require('bluebird-nodeify')
 let mime = require('mime-types')
 let rimraf = require('rimraf')
 let mkdirp = require('mkdirp')
+let chokidar = require('chokidar')
+let net = require ('net')
+
 let argv = require('yargs')
     .default('dir', process.cwd())
     .argv
@@ -22,7 +25,7 @@ if (NODE_ENV === 'development') {
     app.use(morgan('dev'))
 }
 
-app.listen(PORT, ()=> console.log(`Serever started on port - ${PORT}`))
+app.listen(PORT, ()=> console.log(`Http Server started on port - ${PORT}`))
 
 
 app.get('*', setFileMeta, sendHeaders, (req, res) => {
@@ -103,3 +106,48 @@ function sendHeaders(req, res, next) {
         res.setHeader('Content-Type', mime.contentType(path.extname(req.filePath)))
     }(), next)
 }
+
+
+//-- TCP
+var server = net.createServer(function(c) { //'connection' listener
+    console.log('client connected')
+    c.on('end', function() {
+        console.log('client disconnected');
+    })
+    listenToFS(c)
+});
+
+async function listenToFS (c){
+
+    chokidar.watch(ROOT_DIR, {ignored: /[\/\\]\./})
+        .on('all', (event, path) => {
+            let response = JSON.parse('{}')
+            let action = ''
+            console.log (event)
+            if (event === 'add' || event === 'addDir' ){
+                action = 'create'
+            } else if (event == 'unlink'){
+                action = 'delete'
+            } else if (event == 'change') {
+                action = 'change'
+            }
+
+            let stat =  fs.statSync(path)
+            let type = stat.isDirectory() ?'dir':'file'
+            var fileContents = stat.isDirectory() ? null : new Buffer(fs.readFileSync(path)).toString()
+            var lastUpdated = stat.mtime
+            response.action = action;
+            response.path = path.substring(ROOT_DIR.length);
+            response.type = type
+            response.contents = fileContents
+            response.updated = lastUpdated
+            console.log(response)
+            c.write(JSON.stringify(response))
+            c.pipe(c)
+        })
+}
+
+server.listen(8001, function() { //'listening' listener
+    console.log('TCP Server started on port -  8001')
+    console.log(`TCP Server is watching : ${ROOT_DIR}` )
+});
